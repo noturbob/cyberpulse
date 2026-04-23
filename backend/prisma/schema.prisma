@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId   String?   @unique 
+  email       String?   @unique 
+  companyName String?
+  websites    Website[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Website {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  url            String       @unique 
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  scans          Scan[]
+  badges         TrustBadge[] 
+  createdAt      DateTime     @default(now())
+}
+
+model Scan {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  websiteId       String       @db.ObjectId
+  website         Website      @relation(fields: [websiteId], references: [id])
+  safetyScore     Int          
+  sslStatus       String       
+  malwareFound    Boolean      
+  brokenLinks     Int          
+  rawReportData   Json?        
+  actionItems     ActionItem[]
+  scannedAt       DateTime     @default(now())
+}
+
+model ActionItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  scanId      String   @db.ObjectId
+  scan        Scan     @relation(fields: [scanId], references: [id])
+  category    String   
+  severity    String   // Changed from Enum to String for simpler MongoDB handling
+  title       String   
+  remedy      String   
+  isFixed     Boolean  @default(false)
+}
+
+model TrustBadge {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  websiteId   String   @db.ObjectId
+  website     Website  @relation(fields: [websiteId], references: [id])
+  badgeHtml   String   
+  issuedAt    DateTime @default(now())
+  expiresAt   DateTime 
+  isActive    Boolean  @default(true)
+}
